@@ -15,6 +15,11 @@ export default function Home() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [evaluating, setEvaluating] = useState<boolean>(false);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [currentApplication, setCurrentApplication] = useState<Application | null>(null);
+  const [mentorVerdict, setMentorVerdict] = useState<string>('');
+  const [mentorExplanation, setMentorExplanation] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     fetchApplications();
@@ -24,7 +29,7 @@ export default function Home() {
     try {
       const response = await axios.get<string[][]>('http://localhost:5000/applications');
       const [headers, ...data] = response.data;
-      const formattedApplications = data.map(row => 
+      const formattedApplications = data.map(row =>
         headers.reduce((acc, header, index) => {
           acc[header] = row[index];
           return acc;
@@ -42,7 +47,7 @@ export default function Home() {
     try {
       const response = await axios.post<EvaluationResult>('http://localhost:5000/evaluate', {
         application,
-        row: index + 2, // +2 because Google Sheets starts at 1 and we have a header row
+        row: index + 2,
       });
       return response.data;
     } catch (error) {
@@ -53,54 +58,133 @@ export default function Home() {
 
   async function evaluateAllApplications(): Promise<void> {
     setEvaluating(true);
+    setCurrentIndex(0);
     const updatedApplications = [...applications];
+  
     for (let i = 0; i < updatedApplications.length; i++) {
+      setCurrentIndex(i);
       const result = await evaluateApplication(updatedApplications[i], i);
       updatedApplications[i].verdict = result.verdict;
       updatedApplications[i].explanation = result.explanation;
+  
+      if (result.verdict === 'Не уверен') {
+        setCurrentApplication({ ...updatedApplications[i], row: (i + 2).toString() });
+        break;
+      }
+  
       setApplications([...updatedApplications]);
     }
-    setEvaluating(false);
+  
+    if (!currentApplication) {
+      setEvaluating(false);
+    }
+  }
+  
+
+  function handleMentorVerdict(verdict: string) {
+    setMentorVerdict(verdict);
+  }
+
+  async function submitMentorFeedback() {
+    if (currentApplication && mentorVerdict) {
+      setSubmitting(true);
+      try {
+        await axios.post('http://localhost:5000/mentor-feedback', {
+          application: currentApplication,
+          mentorVerdict,
+          mentorExplanation
+        });
+  
+        // Обновляем локальное состояние
+        const updatedApplications = [...applications];
+        const index = parseInt(currentApplication.row as string, 10) - 2;
+        updatedApplications[index].verdict = mentorVerdict;
+        updatedApplications[index].explanation = mentorExplanation;
+        setApplications(updatedApplications);
+  
+        // Сбрасываем текущую заявку и продолжаем оценку
+        setCurrentApplication(null);
+        setMentorVerdict('');
+        setMentorExplanation('');
+        setSubmitting(false);
+        await evaluateAllApplications();
+      } catch (error) {
+        console.error('Error submitting mentor feedback:', error);
+        setSubmitting(false);
+      }
+    }
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+    </div>;
   }
 
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">nFactorial Incubator Applications</h1>
-      <button
-        onClick={evaluateAllApplications}
-        disabled={evaluating}
-        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4"
-      >
-        {evaluating ? 'Evaluating...' : 'Evaluate All Applications'}
-      </button>
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border border-gray-300 p-2">Навыки программирования</th>
-            <th className="border border-gray-300 p-2">Telegram</th>
-            <th className="border border-gray-300 p-2">GitHub</th>
-            <th className="border border-gray-300 p-2">Опыт в программировании</th>
-            <th className="border border-gray-300 p-2">Verdict</th>
-            <th className="border border-gray-300 p-2">Explanation</th>
-          </tr>
-        </thead>
-        <tbody>
-          {applications.map((app, index) => (
-            <tr key={index}>
-              <td className="border border-gray-300 p-2">{app['Какое из вариантов лучше всего описывает Ваш уровень навыков программирования?']}</td>
-              <td className="border border-gray-300 p-2">{app['Профиль в Telegram']}</td>
-              <td className="border border-gray-300 p-2">{app['Ссылка на GitHub']}</td>
-              <td className="border border-gray-300 p-2">{app['Подробное описание Вашего опыта в программировании']}</td>
-              <td className="border border-gray-300 p-2">{app.verdict || 'Not evaluated'}</td>
-              <td className="border border-gray-300 p-2">{app.explanation || 'No explanation'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <main className="p-4 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center">nFactorial Incubator Applications</h1>
+      {!evaluating && !currentApplication && (
+        <div className="text-center">
+          <button
+            onClick={evaluateAllApplications}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            Evaluate Applications
+          </button>
+        </div>
+      )}
+      {evaluating && !currentApplication && (
+        <div className="mt-8">
+          <p className="text-lg mb-2">Evaluating application {currentIndex + 1} of {applications.length}</p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${((currentIndex + 1) / applications.length) * 100}%`}}></div>
+          </div>
+        </div>
+      )}
+      {currentApplication && (
+        <div className="mt-8 bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-4">Application Requiring Mentor Review</h2>
+          <div className="mb-6 space-y-2 text-black">
+            <p><strong>Programming Skills:</strong> {currentApplication['Какое из вариантов лучше всего описывает Ваш уровень навыков программирования?']}</p>
+            <p><strong>Telegram:</strong> {currentApplication['Профиль в Telegram']}</p>
+            <p><strong>GitHub:</strong> {currentApplication['Ссылка на GitHub']}</p>
+            <p><strong>Programming Experience:</strong> {currentApplication['Подробное описание Вашего опыта в программировании']}</p>
+            <p><strong>Job:</strong> {currentApplication['Место работы (если есть)']}</p>
+            <p><strong>School/Uni:</strong> {currentApplication['Университет/школа, где Вы учились/учитесь']}</p>
+            <p><strong>Major:</strong> {currentApplication['Специальность в университете']}</p>
+            <p><strong>Achievements:</strong> {currentApplication['Ваши самые впечатляющие достижения (в программировании, учебе, спорте и пр.)']}</p>
+          </div>
+          <div className="mb-6 space-x-4">
+            <button
+              onClick={() => handleMentorVerdict('Проходит')}
+              className={`px-6 py-2 rounded-full transition duration-300 ease-in-out ${mentorVerdict === 'Проходит' ? 'bg-green-500 text-white' : 'bg-gray-200 hover:bg-green-500 hover:text-white'}`}
+            >
+              Проходит
+            </button>
+            <button
+              onClick={() => handleMentorVerdict('Не проходит')}
+              className={`px-6 py-2 rounded-full transition duration-300 ease-in-out ${mentorVerdict === 'Не проходит' ? 'bg-red-500 text-white' : 'bg-gray-200 hover:bg-red-500 hover:text-white'}`}
+            >
+              Не проходит
+            </button>
+          </div>
+          <textarea
+            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            rows={4}
+            placeholder="Объяснение решения"
+            value={mentorExplanation}
+            onChange={(e) => setMentorExplanation(e.target.value)}
+          ></textarea>
+          <button
+            onClick={submitMentorFeedback}
+            disabled={!mentorVerdict || !mentorExplanation || submitting}
+            className={`mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out ${(!mentorVerdict || !mentorExplanation || submitting) ? 'opacity-50 cursor-not-allowed' : 'transform hover:scale-105'}`}
+          >
+            {submitting ? 'Submitting...' : 'Submit Feedback'}
+          </button>
+        </div>
+      )}
     </main>
   );
 }
