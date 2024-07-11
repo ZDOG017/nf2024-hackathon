@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { readApplications, writeVerdictAndExplanation } = require('./services/googleSheetsService');
-const { getVerdict, fineTuneModel } = require('./services/chatgptService');
+const { getVerdict, adaptToMentorFeedback } = require('./services/chatgptService');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -38,12 +39,8 @@ app.post('/evaluate', async (req, res) => {
 app.post('/mentor-feedback', async (req, res) => {
   const { application, mentorVerdict, mentorExplanation } = req.body;
   try {
-    // Обновляем Google Sheets
     await writeVerdictAndExplanation(application.row, mentorVerdict, mentorExplanation);
-    
-    // Выполняем fine-tuning
-    await fineTuneModel(application, mentorVerdict, mentorExplanation);
-    
+    await adaptToMentorFeedback(application, mentorVerdict, mentorExplanation);
     res.json({ success: true });
   } catch (error) {
     console.error('Failed to process mentor feedback:', error);
