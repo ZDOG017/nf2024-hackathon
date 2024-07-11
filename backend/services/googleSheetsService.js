@@ -27,7 +27,7 @@ async function readApplications() {
     console.log('Attempting to read from sheet:', spreadsheetId);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Sheet1!A1:K', // Corrected range
+      range: 'A1:K', // Corrected range
     });
     console.log('Response received:', response.status);
     console.log('Data:', response.data);
@@ -44,7 +44,7 @@ async function writeVerdict(row, verdict) {
   try {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Sheet1!L${row}`, // Предполагаем, что столбец L для вердиктов
+      range: `L${row}`, // Предполагаем, что столбец L для вердиктов
       valueInputOption: 'RAW',
       resource: { values: [[verdict]] },
     });
