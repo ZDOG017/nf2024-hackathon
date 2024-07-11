@@ -66,12 +66,17 @@ app.post('/mentor-feedback', async (req, res) => {
 app.post('/compare-repos', async (req, res) => {
   const { repo1, repo2 } = req.body;
   
+  console.log(`Received request to compare repos: ${repo1} and ${repo2}`);
+
   if (!repo1 || !repo2) {
+    console.log('Error: Missing repository URL(s)');
     return res.status(400).json({ error: 'Both repository URLs are required' });
   }
 
   try {
+    console.log('Starting repository comparison');
     const result = await compareRepositories(repo1, repo2);
+    console.log('Comparison completed successfully');
     res.json({ result });
   } catch (error) {
     console.error('Error comparing repositories:', error);
