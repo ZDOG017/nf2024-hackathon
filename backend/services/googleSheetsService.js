@@ -18,8 +18,6 @@ async function readApplications() {
       spreadsheetId,
       range: 'A1:M', // Расширяем диапазон, чтобы включить столбцы для вердикта и объяснения
     });
-    console.log('Response received:', response.status);
-    console.log('Data:', response.data);
     return response.data.values || [];
   } catch (error) {
     console.error('Error reading from Google Sheets:', error);
@@ -42,4 +40,18 @@ async function writeVerdictAndExplanation(row, verdict, explanation) {
   }
 }
 
-module.exports = { readApplications, writeVerdictAndExplanation };
+async function writeGithubLinkAndPlagiarismScore(row, githubLink, plagiarismScore) {
+  try {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `N${row}:O${row}`, // Предполагаем, что столбец N для ссылок на GitHub, а O для результатов проверки плагиата
+      valueInputOption: 'RAW',
+      resource: { values: [[githubLink, plagiarismScore]] },
+    });
+  } catch (error) {
+    console.error('Error writing to Google Sheets:', error);
+    throw error;
+  }
+}
+
+module.exports = { readApplications, writeVerdictAndExplanation, writeGithubLinkAndPlagiarismScore };

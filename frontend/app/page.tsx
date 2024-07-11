@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 interface Application {
@@ -20,6 +20,9 @@ export default function Home() {
   const [mentorVerdict, setMentorVerdict] = useState<string>('');
   const [mentorExplanation, setMentorExplanation] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [passedCandidates, setPassedCandidates] = useState<number>(0);
+  const [githubLinkRequested, setGithubLinkRequested] = useState<boolean>(false);
+  const [currentGithubLink, setCurrentGithubLink] = useState<string>('');
 
   useEffect(() => {
     fetchApplications();
@@ -77,9 +80,42 @@ export default function Home() {
   
     if (!currentApplication) {
       setEvaluating(false);
+      const passedCount = updatedApplications.filter(app => app.verdict === 'Проходит').length;
+      setPassedCandidates(passedCount);
     }
   }
-  
+
+  const requestGithubLinks = useCallback(async () => {
+    setGithubLinkRequested(true);
+    for (const application of applications) {
+      if (application.verdict === 'Проходит') {
+        setCurrentApplication(application);
+        await new Promise<void>((resolve) => {
+          const handleSubmit = async () => {
+            try {
+              await axios.post('http://localhost:5000/check-plagiarism', {
+                application,
+                githubLink: currentGithubLink
+              });
+              resolve();
+            } catch (error) {
+              console.error('Error checking plagiarism:', error);
+            }
+          };
+          setCurrentGithubLink('');
+          const checkInterval = setInterval(() => {
+            if (currentGithubLink) {
+              clearInterval(checkInterval);
+              handleSubmit();
+            }
+          }, 100);
+        });
+      }
+    }
+    setGithubLinkRequested(false);
+    setCurrentApplication(null);
+    await fetchApplications(); // Обновляем данные после проверки всех ссылок
+  }, [applications, currentGithubLink]);
 
   function handleMentorVerdict(verdict: string) {
     setMentorVerdict(verdict);
@@ -124,7 +160,7 @@ export default function Home() {
   return (
     <main className="p-4 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8 text-center">nFactorial Incubator Applications</h1>
-      {!evaluating && !currentApplication && (
+      {!evaluating && !currentApplication && passedCandidates === 0 && (
         <div className="text-center">
           <button
             onClick={evaluateAllApplications}
@@ -142,7 +178,37 @@ export default function Home() {
           </div>
         </div>
       )}
-      {currentApplication && (
+      {!evaluating && passedCandidates > 0 && !githubLinkRequested && (
+        <div className="mt-8 text-center">
+          <p className="text-xl mb-4">Количество прошедших кандидатов: {passedCandidates}</p>
+          <button
+            onClick={requestGithubLinks}
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            Запросить ссылки на GitHub проекты
+          </button>
+        </div>
+      )}
+      {githubLinkRequested && currentApplication && (
+        <div className="mt-8 bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-4">Введите ссылку на GitHub проект</h2>
+          <p>Кандидат: {currentApplication['Профиль в Telegram']}</p>
+          <input
+            type="text"
+            value={currentGithubLink}
+            onChange={(e) => setCurrentGithubLink(e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black mt-4"
+            placeholder="https://github.com/username/project"
+          />
+          <button
+            onClick={() => setCurrentGithubLink(currentGithubLink)} // Это вызовет обработку в useCallback
+            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            Отправить ссылку
+          </button>
+        </div>
+      )}
+      {currentApplication && !githubLinkRequested && (
         <div className="mt-8 bg-white shadow-md rounded-lg p-6">
           <h2 className="text-2xl font-bold mb-4">Application Requiring Mentor Review</h2>
           <div className="mb-6 space-y-2 text-black">
