@@ -11,23 +11,12 @@ const auth = new google.auth.JWT(
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-async function testConnection() {
-  try {
-    const response = await sheets.spreadsheets.get({
-      spreadsheetId,
-    });
-    console.log('Spreadsheet details:', response.data.properties);
-  } catch (error) {
-    console.error('Error connecting to Google Sheets:', error);
-  }
-}
-
 async function readApplications() {
   try {
     console.log('Attempting to read from sheet:', spreadsheetId);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A1:K', // Corrected range
+      range: 'A1:M', // Расширяем диапазон, чтобы включить столбцы для вердикта и объяснения
     });
     console.log('Response received:', response.status);
     console.log('Data:', response.data);
@@ -39,14 +28,13 @@ async function readApplications() {
   }
 }
 
-// Функция для записи вердикта в таблицу
-async function writeVerdict(row, verdict) {
+async function writeVerdictAndExplanation(row, verdict, explanation) {
   try {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `L${row}`, // Предполагаем, что столбец L для вердиктов
+      range: `L${row}:M${row}`, // Предполагаем, что столбец L для вердиктов, а M для объяснений
       valueInputOption: 'RAW',
-      resource: { values: [[verdict]] },
+      resource: { values: [[verdict, explanation]] },
     });
   } catch (error) {
     console.error('Error writing to Google Sheets:', error);
@@ -54,4 +42,4 @@ async function writeVerdict(row, verdict) {
   }
 }
 
-module.exports = { readApplications, writeVerdict, testConnection };
+module.exports = { readApplications, writeVerdictAndExplanation };

@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { readApplications, writeVerdict,testConnection } = require('./services/googleSheetsService');
+const { readApplications, writeVerdictAndExplanation } = require('./services/googleSheetsService');
 const { getVerdict } = require('./services/chatgptService');
 
 const app = express();
@@ -19,15 +19,19 @@ app.get('/applications', async (req, res) => {
   }
 });
 
-
-
 app.post('/evaluate', async (req, res) => {
   const { application, row } = req.body;
   try {
-    const result = await getVerdict(application);
-    await writeVerdict(row, result.verdict);
+    const cleanedApplication = Object.fromEntries(
+      Object.entries(application).filter(([_, v]) => v != null && v !== '')
+    );
+    const result = await getVerdict(cleanedApplication);
+    if (result.verdict !== "Ошибка") {
+      await writeVerdictAndExplanation(row, result.verdict, result.explanation);
+    }
     res.json(result);
   } catch (error) {
+    console.error('Failed to evaluate application:', error);
     res.status(500).json({ error: 'Failed to evaluate application' });
   }
 });
