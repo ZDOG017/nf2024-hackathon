@@ -22,8 +22,8 @@ export default function ComparePage() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Compare GitHub Repositories</h1>
+    <div className="bg-white shadow-md rounded-lg p-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Compare GitHub Repositories</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="repo1" className="block mb-1">Repository 1 URL:</label>
@@ -32,7 +32,7 @@ export default function ComparePage() {
             id="repo1"
             value={repo1}
             onChange={(e) => setRepo1(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="input-field"
             placeholder="https://github.com/username/repo1"
             required
           />
@@ -44,25 +44,25 @@ export default function ComparePage() {
             id="repo2"
             value={repo2}
             onChange={(e) => setRepo2(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="input-field"
             placeholder="https://github.com/username/repo2"
             required
           />
         </div>
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="btn-primary"
           disabled={loading}
         >
           {loading ? 'Comparing...' : 'Compare'}
         </button>
       </form>
       {result && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-2">Result:</h2>
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Result:</h2>
           <p className="bg-gray-100 p-4 rounded">
             {result.includes('http') ? (
-              <a href={result.split(': ')[1]} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+              <a href={result.split(': ')[1]} target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">
                 View MOSS Result
               </a>
             ) : (

@@ -158,13 +158,13 @@ export default function Home() {
   }
 
   return (
-    <main className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 text-center">nFactorial Incubator Applications</h1>
+    <main className="p-4 max-w-4xl mx-auto bg-white shadow-lg rounded-lg mt-12">
+      <h1 className="text-4xl font-bold mb-8 text-center text-gray-900">nFactorial Incubator Applications</h1>
       {!evaluating && !currentApplication && passedCandidates === 0 && (
         <div className="text-center">
           <button
             onClick={evaluateAllApplications}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
           >
             Evaluate Applications
           </button>
@@ -172,15 +172,15 @@ export default function Home() {
       )}
       {evaluating && !currentApplication && (
         <div className="mt-8">
-          <p className="text-lg mb-2">Evaluating application {currentIndex + 1} of {applications.length}</p>
+          <p className="text-lg mb-2 text-gray-700">Evaluating application {currentIndex + 1} of {applications.length}</p>
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${((currentIndex + 1) / applications.length) * 100}%`}}></div>
+            <div className="bg-red-600 h-2.5 rounded-full" style={{width: `${((currentIndex + 1) / applications.length) * 100}%`}}></div>
           </div>
         </div>
       )}
       {!evaluating && passedCandidates > 0 && !githubLinkRequested && (
         <div className="mt-8 text-center">
-          <p className="text-xl mb-4">Количество прошедших кандидатов: {passedCandidates}</p>
+          <p className="text-xl mb-4 text-gray-700">Количество прошедших кандидатов: {passedCandidates}</p>
           <button
             onClick={requestGithubLinks}
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
@@ -191,18 +191,18 @@ export default function Home() {
       )}
       {githubLinkRequested && currentApplication && (
         <div className="mt-8 bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">Введите ссылку на GitHub проект</h2>
-          <p>Кандидат: {currentApplication['Профиль в Telegram']}</p>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Введите ссылку на GitHub проект</h2>
+          <p className="text-gray-700">Кандидат: {currentApplication['Профиль в Telegram']}</p>
           <input
             type="text"
             value={currentGithubLink}
             onChange={(e) => setCurrentGithubLink(e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black mt-4"
+            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-black mt-4"
             placeholder="https://github.com/username/project"
           />
           <button
             onClick={() => setCurrentGithubLink(currentGithubLink)} // Это вызовет обработку в useCallback
-            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
+            className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
           >
             Отправить ссылку
           </button>
@@ -210,8 +210,8 @@ export default function Home() {
       )}
       {currentApplication && !githubLinkRequested && (
         <div className="mt-8 bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">Application Requiring Mentor Review</h2>
-          <div className="mb-6 space-y-2 text-black">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Application Requiring Mentor Review</h2>
+          <div className="mb-6 space-y-2 text-gray-700">
             <p><strong>Programming Skills:</strong> {currentApplication['Какое из вариантов лучше всего описывает Ваш уровень навыков программирования?']}</p>
             <p><strong>Telegram:</strong> {currentApplication['Профиль в Telegram']}</p>
             <p><strong>GitHub:</strong> {currentApplication['Ссылка на GitHub']}</p>
@@ -236,7 +236,7 @@ export default function Home() {
             </button>
           </div>
           <textarea
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-black"
             rows={4}
             placeholder="Объяснение решения"
             value={mentorExplanation}
@@ -245,7 +245,7 @@ export default function Home() {
           <button
             onClick={submitMentorFeedback}
             disabled={!mentorVerdict || !mentorExplanation || submitting}
-            className={`mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out ${(!mentorVerdict || !mentorExplanation || submitting) ? 'opacity-50 cursor-not-allowed' : 'transform hover:scale-105'}`}
+            className={`mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out ${(!mentorVerdict || !mentorExplanation || submitting) ? 'opacity-50 cursor-not-allowed' : 'transform hover:scale-105'}`}
           >
             {submitting ? 'Submitting...' : 'Submit Feedback'}
           </button>
