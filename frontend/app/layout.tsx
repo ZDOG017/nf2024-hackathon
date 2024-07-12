@@ -22,6 +22,7 @@ export default function RootLayout({
                 <Link href="/" className="text-red-500 font-bold text-2xl">nFactorial</Link>
               </div>
               <nav>
+              <Link href="/similar-repos" className="text-gray-700 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium">Find Similar Repos</Link>
                 <Link href="/" className="text-gray-700 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium">Home</Link>
                 <Link href="/compare" className="text-gray-700 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium">Compare</Link>
               </nav>

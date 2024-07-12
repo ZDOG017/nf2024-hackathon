@@ -3,6 +3,10 @@ const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
 const util = require('util');
+const { Octokit } = require("@octokit/rest");
+const similarity = require('string-similarity');
+
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 const execPromise = util.promisify(exec);
 
@@ -23,7 +27,6 @@ async function getFilesFromRepo(repoPath) {
       const stats = await fs.stat(filePath);
       if (!stats.isFile()) return false;
       
-      // Простая проверка на текстовый файл по расширению
       const textExtensions = ['.js', '.ts', '.py', '.java', '.c', '.cpp', '.h', '.html', '.css', '.txt', '.md'];
       return textExtensions.includes(path.extname(filePath).toLowerCase());
     } catch (error) {
@@ -151,4 +154,83 @@ async function compareRepositories(repo1Url, repo2Url) {
   }
 }
 
-module.exports = { compareRepositories };
+async function findSimilarRepos(repoUrl) {
+  const repoInfo = repoUrl.split('/');
+  const owner = repoInfo[repoInfo.length - 2];
+  const repo = repoInfo[repoInfo.length - 1];
+
+  try {
+    // Получаем информацию о репозитории
+    const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+
+    // Извлекаем ключевые слова из названия, описания и темы
+    const keywords = [
+      ...repoData.name.split('-'),
+      ...repoData.description.split(' '),
+      ...(repoData.topics || [])
+    ]
+      .filter(word => word.length > 3)
+      .map(word => word.toLowerCase())
+      .filter((value, index, self) => self.indexOf(value) === index) // удаляем дубликаты
+      .join(' ');
+
+    // Получаем языки репозитория
+    const { data: languages } = await octokit.rest.repos.listLanguages({ owner, repo });
+    const primaryLanguage = Object.keys(languages)[0];
+
+    // Ищем похожие репозитории
+    const { data: searchResults } = await octokit.rest.search.repos({
+      q: `${keywords} language:${primaryLanguage} fork:true stars:>10`,
+      sort: 'stars',
+      order: 'desc',
+      per_page: 100
+    });
+
+    // Получаем содержимое README.md исходного репозитория
+    const { data: readmeData } = await octokit.rest.repos.getReadme({ owner, repo });
+    const sourceReadme = Buffer.from(readmeData.content, 'base64').toString('utf-8');
+
+    // Фильтруем и оцениваем результаты
+    const similarRepos = await Promise.all(searchResults.items
+      .filter(item => item.full_name !== `${owner}/${repo}`)
+      .map(async item => {
+        // Получаем README.md найденного репозитория
+        try {
+          const { data: itemReadmeData } = await octokit.rest.repos.getReadme({
+            owner: item.owner.login,
+            repo: item.name
+          });
+          const itemReadme = Buffer.from(itemReadmeData.content, 'base64').toString('utf-8');
+          
+          // Вычисляем схожесть README
+          const readmeSimilarity = similarity.compareTwoStrings(sourceReadme, itemReadme);
+
+          return {
+            name: item.name,
+            full_name: item.full_name,
+            html_url: item.html_url,
+            description: item.description,
+            stargazers_count: item.stargazers_count,
+            language: item.language,
+            topics: item.topics,
+            similarity_score: readmeSimilarity
+          };
+        } catch (error) {
+          console.error(`Error processing repo ${item.full_name}:`, error);
+          return null;
+        }
+      }));
+
+    // Сортируем результаты по схожести и звездам
+    return similarRepos
+      .filter(repo => repo !== null)
+      .sort((a, b) => b.similarity_score - a.similarity_score || b.stargazers_count - a.stargazers_count)
+      .slice(0, 10); // Возвращаем топ-10 результатов
+
+  } catch (error) {
+    console.error('Error finding similar repositories:', error);
+    throw error;
+  }
+}
+
+module.exports = { compareRepositories, findSimilarRepos };

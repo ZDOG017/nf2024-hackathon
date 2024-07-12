@@ -114,7 +114,7 @@ export default function Home() {
     }
     setGithubLinkRequested(false);
     setCurrentApplication(null);
-    await fetchApplications(); // Обновляем данные после проверки всех ссылок
+    await fetchApplications(); 
   }, [applications, currentGithubLink]);
 
   function handleMentorVerdict(verdict: string) {
@@ -131,14 +131,12 @@ export default function Home() {
           mentorExplanation
         });
   
-        // Обновляем локальное состояние
         const updatedApplications = [...applications];
         const index = parseInt(currentApplication.row as string, 10) - 2;
         updatedApplications[index].verdict = mentorVerdict;
         updatedApplications[index].explanation = mentorExplanation;
         setApplications(updatedApplications);
   
-        // Сбрасываем текущую заявку и продолжаем оценку
         setCurrentApplication(null);
         setMentorVerdict('');
         setMentorExplanation('');
@@ -176,36 +174,6 @@ export default function Home() {
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
             <div className="bg-red-600 h-2.5 rounded-full" style={{width: `${((currentIndex + 1) / applications.length) * 100}%`}}></div>
           </div>
-        </div>
-      )}
-      {!evaluating && passedCandidates > 0 && !githubLinkRequested && (
-        <div className="mt-8 text-center">
-          <p className="text-xl mb-4 text-gray-700">Количество прошедших кандидатов: {passedCandidates}</p>
-          <button
-            onClick={requestGithubLinks}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Запросить ссылки на GitHub проекты
-          </button>
-        </div>
-      )}
-      {githubLinkRequested && currentApplication && (
-        <div className="mt-8 bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900">Введите ссылку на GitHub проект</h2>
-          <p className="text-gray-700">Кандидат: {currentApplication['Профиль в Telegram']}</p>
-          <input
-            type="text"
-            value={currentGithubLink}
-            onChange={(e) => setCurrentGithubLink(e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-black mt-4"
-            placeholder="https://github.com/username/project"
-          />
-          <button
-            onClick={() => setCurrentGithubLink(currentGithubLink)} // Это вызовет обработку в useCallback
-            className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Отправить ссылку
-          </button>
         </div>
       )}
       {currentApplication && !githubLinkRequested && (

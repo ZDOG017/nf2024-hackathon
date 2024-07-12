@@ -3,8 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 const { readApplications, writeVerdictAndExplanation, writeGithubLinkAndPlagiarismScore } = require('./services/googleSheetsService');
 const { getVerdict, adaptToMentorFeedback } = require('./services/chatgptService');
-const { checkPlagiarism } = require('./services/plagiarismService');
 const { compareRepositories } = require('./services/githubService');
+const { findSimilarRepos } = require('./services/githubService');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -62,7 +62,8 @@ app.post('/mentor-feedback', async (req, res) => {
   }
 });
 
-// Новый маршрут для сравнения репозиториев с использованием MOSS
+
+
 app.post('/compare-repos', async (req, res) => {
   const { repo1, repo2 } = req.body;
   
@@ -81,6 +82,22 @@ app.post('/compare-repos', async (req, res) => {
   } catch (error) {
     console.error('Error comparing repositories:', error);
     res.status(500).json({ error: 'Failed to compare repositories' });
+  }
+});
+
+app.post('/find-similar-repos', async (req, res) => {
+  const { repoUrl } = req.body;
+  
+  if (!repoUrl) {
+    return res.status(400).json({ error: 'Repository URL is required' });
+  }
+
+  try {
+    const similarRepos = await findSimilarRepos(repoUrl);
+    res.json({ similarRepos });
+  } catch (error) {
+    console.error('Error finding similar repositories:', error);
+    res.status(500).json({ error: 'Failed to find similar repositories' });
   }
 });
 
